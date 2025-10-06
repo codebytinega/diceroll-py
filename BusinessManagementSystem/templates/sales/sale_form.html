@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Sale - Business Management System{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-shopping-cart mr-2 text-green-600"></i>Record New Sale
+                </h1>
+                <a href="{% url 'sales:sale_list' %}" 
+                   class="text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Sales
+                </a>
+            </div>
+
+            <form method="post" class="space-y-6" id="sale-form">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert-error border px-4 py-3 rounded mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            <div>
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label for="{{ form.product.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Product *
+                        </label>
+                        {{ form.product }}
+                        {% if form.product.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.product.errors.0 }}</div>
+                        {% endif %}
+                        <div id="product-info" class="mt-2 p-3 bg-gray-50 rounded-md hidden">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Available Stock:</span>
+                                    <span id="available-stock" class="font-medium">-</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Selling Price:</span>
+                                    <span id="selling-price" class="font-medium">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.quantity_sold.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Quantity *
+                        </label>
+                        {{ form.quantity_sold }}
+                        {% if form.quantity_sold.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.quantity_sold.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Customer Name
+                        </label>
+                        {{ form.customer_name }}
+                        {% if form.customer_name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.customer_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Notes
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.notes.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Sale Preview -->
+                <div id="sale-preview" class="bg-blue-50 p-4 rounded-lg hidden">
+                    <h3 class="text-sm font-medium text-blue-900 mb-2">Sale Preview</h3>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <span class="text-blue-700">Total Cost:</span>
+                            <span id="total-cost" class="font-medium text-blue-900">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-700">Profit:</span>
+                            <span id="profit-amount" class="font-medium text-green-600">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-700">Profit Margin:</span>
+                            <span id="profit-margin" class="font-medium text-green-600">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <a href="{% url 'sales:sale_list' %}" 
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-shopping-cart mr-2"></i>Record Sale
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Product data for calculations
+    const productData = {
+        {% for product in form.product.queryset %}
+        {{ product.id }}: {
+            name: "{{ product.name|escapejs }}",
+            quantity: {{ product.quantity }},
+            selling_price: {{ product.selling_price }},
+            buying_price: {{ product.buying_price }}
+        },
+        {% endfor %}
+    };
+
+    function updateProductInfo() {
+        const productSelect = document.getElementById('{{ form.product.id_for_label }}');
+        const productId = productSelect.value;
+        const productInfoDiv = document.getElementById('product-info');
+        
+        if (productId && productData[productId]) {
+            const product = productData[productId];
+            
+            document.getElementById('available-stock').textContent = product.quantity;
+            document.getElementById('selling-price').textContent = '$' + product.selling_price;
+            
+            productInfoDiv.classList.remove('hidden');
+            updateSalePreview();
+        } else {
+            productInfoDiv.classList.add('hidden');
+            document.getElementById('sale-preview').classList.add('hidden');
+        }
+    }
+
+    function updateSalePreview() {
+        const productSelect = document.getElementById('{{ form.product.id_for_label }}');
+        const quantityInput = document.getElementById('{{ form.quantity_sold.id_for_label }}');
+        
+        const productId = productSelect.value;
+        const quantity = parseInt(quantityInput.value) || 0;
+        
+        if (productId && quantity > 0 && productData[productId]) {
+            const product = productData[productId];
+            const totalCost = product.selling_price * quantity;
+            const profit = (product.selling_price - product.buying_price) * quantity;
+            const profitMargin = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+            
+            document.getElementById('total-cost').textContent = '$' + totalCost.toFixed(2);
+            document.getElementById('profit-amount').textContent = '$' + profit.toFixed(2);
+            document.getElementById('profit-margin').textContent = profitMargin.toFixed(1) + '%';
+            
+            document.getElementById('sale-preview').classList.remove('hidden');
+        } else {
+            document.getElementById('sale-preview').classList.add('hidden');
+        }
+    }
+
+    // Add event listeners
+    document.getElementById('{{ form.product.id_for_label }}').addEventListener('change', updateProductInfo);
+    document.getElementById('{{ form.quantity_sold.id_for_label }}').addEventListener('input', updateSalePreview);
+    
+    // Initial update
+    updateProductInfo();
+</script>
+{% endblock %}

@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Business Management System{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <div class="text-sm text-gray-500">
+            <i class="fas fa-calendar mr-1"></i>
+            {{ "now"|date:"F d, Y" }}
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Products -->
+        <div class="bg-white overflow-hidden shadow rounded-lg card-hover transition-all duration-300">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                            <i class="fas fa-boxes text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Products</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ total_products }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Sales -->
+        <div class="bg-white overflow-hidden shadow rounded-lg card-hover transition-all duration-300">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                            <i class="fas fa-shopping-cart text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Today's Sales</dt>
+                            <dd class="text-lg font-medium text-gray-900">${{ today_sales_total|floatformat:2 }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Profit -->
+        <div class="bg-white overflow-hidden shadow rounded-lg card-hover transition-all duration-300">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                            <i class="fas fa-dollar-sign text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Today's Profit</dt>
+                            <dd class="text-lg font-medium text-gray-900">${{ today_profit|floatformat:2 }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Alert -->
+        <div class="bg-white overflow-hidden shadow rounded-lg card-hover transition-all duration-300">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 {% if low_stock_count > 0 %}bg-red-500{% else %}bg-gray-400{% endif %} rounded-md flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-white"></i>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Low Stock Items</dt>
+                            <dd class="text-lg font-medium {% if low_stock_count > 0 %}text-red-600{% else %}text-gray-900{% endif %}">
+                                {{ low_stock_count }}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Sales Chart -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    <i class="fas fa-chart-line mr-2 text-blue-500"></i>
+                    Sales Trend (Last 7 Days)
+                </h3>
+                <div class="h-64">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profit Chart -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    <i class="fas fa-chart-bar mr-2 text-green-500"></i>
+                    Profit Trend (Last 7 Days)
+                </h3>
+                <div class="h-64">
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Low Stock Products -->
+        {% if low_stock_products %}
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>
+                    Low Stock Alert
+                </h3>
+                <div class="flow-root">
+                    <ul class="-my-5 divide-y divide-gray-200">
+                        {% for product in low_stock_products %}
+                        <li class="py-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                        <span class="text-sm font-medium text-red-600">{{ product.quantity }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">
+                                        {{ product.name }}
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        {{ product.get_category_display }}
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <a href="{% url 'inventory:product_detail' product.pk %}" 
+                                       class="text-blue-600 hover:text-blue-500 text-sm font-medium">
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="mt-4">
+                    <a href="{% url 'inventory:low_stock' %}" 
+                       class="text-blue-600 hover:text-blue-500 text-sm font-medium">
+                        View all low stock items →
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Sales -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    <i class="fas fa-clock mr-2 text-blue-500"></i>
+                    Recent Sales
+                </h3>
+                {% if recent_sales %}
+                <div class="flow-root">
+                    <ul class="-my-5 divide-y divide-gray-200">
+                        {% for sale in recent_sales %}
+                        <li class="py-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-shopping-cart text-green-600 text-xs"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">
+                                        {{ sale.product.name }} x{{ sale.quantity_sold }}
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        ${{ sale.total_cost|floatformat:2 }} • {{ sale.date_sold|timesince }} ago
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <span class="text-sm font-medium text-green-600">
+                                        +${{ sale.profit|floatformat:2 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-sm">No sales recorded yet.</p>
+                {% endif %}
+                <div class="mt-4">
+                    <a href="{% url 'sales:sale_list' %}" 
+                       class="text-blue-600 hover:text-blue-500 text-sm font-medium">
+                        View all sales →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                <i class="fas fa-bolt mr-2 text-yellow-500"></i>
+                Quick Actions
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="{% url 'sales:sale_add' %}" 
+                   class="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition-colors group">
+                    <i class="fas fa-plus-circle text-2xl text-blue-600 mb-2"></i>
+                    <p class="text-sm font-medium text-blue-900">Record Sale</p>
+                </a>
+                
+                <a href="{% url 'inventory:product_add' %}" 
+                   class="bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition-colors group">
+                    <i class="fas fa-box text-2xl text-green-600 mb-2"></i>
+                    <p class="text-sm font-medium text-green-900">Add Product</p>
+                </a>
+                
+                <a href="{% url 'reports:sales_report' %}" 
+                   class="bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition-colors group">
+                    <i class="fas fa-chart-bar text-2xl text-purple-600 mb-2"></i>
+                    <p class="text-sm font-medium text-purple-900">View Reports</p>
+                </a>
+                
+                <a href="{% url 'inventory:low_stock' %}" 
+                   class="bg-red-50 hover:bg-red-100 p-4 rounded-lg text-center transition-colors group">
+                    <i class="fas fa-exclamation-triangle text-2xl text-red-600 mb-2"></i>
+                    <p class="text-sm font-medium text-red-900">Check Stock</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sales Chart
+    fetch('{% url "dashboard:sales_chart_data" %}')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Sales ($)',
+                        data: data.data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+    // Profit Chart
+    fetch('{% url "dashboard:profit_chart_data" %}')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Profit ($)',
+                        data: data.data,
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgb(34, 197, 94)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+</script>
+{% endblock %}
