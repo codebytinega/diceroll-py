@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if object %}Edit Product{% else %}Add Product{% endif %} - Business Management System
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    {% if object %}
+                        <i class="fas fa-edit mr-2 text-blue-600"></i>Edit Product
+                    {% else %}
+                        <i class="fas fa-plus mr-2 text-green-600"></i>Add New Product
+                    {% endif %}
+                </h1>
+                <a href="{% url 'inventory:product_list' %}" 
+                   class="text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left mr-1"></i>Back to Inventory
+                </a>
+            </div>
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert-error border px-4 py-3 rounded mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            <div>
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Product Name *
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Category *
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.category.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.buying_price.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Buying Price ($) *
+                        </label>
+                        {{ form.buying_price }}
+                        {% if form.buying_price.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.buying_price.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.selling_price.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Selling Price ($) *
+                        </label>
+                        {{ form.selling_price }}
+                        {% if form.selling_price.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.selling_price.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.quantity.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Quantity *
+                        </label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.quantity.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.supplier.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Supplier *
+                        </label>
+                        {{ form.supplier }}
+                        {% if form.supplier.errors %}
+                            <div class="text-red-600 text-sm mt-1">{{ form.supplier.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Profit Preview -->
+                <div id="profit-preview" class="bg-gray-50 p-4 rounded-lg hidden">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2">Profit Preview</h3>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Profit per unit:</span>
+                            <span id="profit-per-unit" class="font-medium text-green-600">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Profit margin:</span>
+                            <span id="profit-margin" class="font-medium text-green-600">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <a href="{% url 'inventory:product_list' %}" 
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        {% if object %}
+                            <i class="fas fa-save mr-2"></i>Update Product
+                        {% else %}
+                            <i class="fas fa-plus mr-2"></i>Add Product
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Calculate profit preview
+    function updateProfitPreview() {
+        const buyingPrice = parseFloat(document.getElementById('{{ form.buying_price.id_for_label }}').value) || 0;
+        const sellingPrice = parseFloat(document.getElementById('{{ form.selling_price.id_for_label }}').value) || 0;
+        
+        if (buyingPrice > 0 && sellingPrice > 0) {
+            const profitPerUnit = sellingPrice - buyingPrice;
+            const profitMargin = ((profitPerUnit / sellingPrice) * 100);
+            
+            document.getElementById('profit-per-unit').textContent = '$' + profitPerUnit.toFixed(2);
+            document.getElementById('profit-margin').textContent = profitMargin.toFixed(1) + '%';
+            document.getElementById('profit-preview').classList.remove('hidden');
+        } else {
+            document.getElementById('profit-preview').classList.add('hidden');
+        }
+    }
+    
+    // Add event listeners
+    document.getElementById('{{ form.buying_price.id_for_label }}').addEventListener('input', updateProfitPreview);
+    document.getElementById('{{ form.selling_price.id_for_label }}').addEventListener('input', updateProfitPreview);
+    
+    // Initial calculation
+    updateProfitPreview();
+</script>
+{% endblock %}
